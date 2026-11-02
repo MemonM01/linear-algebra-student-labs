@@ -19,6 +19,8 @@ What you need to do:
 
 import numpy as np
 from scipy.sparse import diags
+from matplotlib import pyplot as plt
+import time
 
 
 def generate_safe_system(n):
@@ -81,6 +83,15 @@ def lu_factorisation(A):
     L, U = np.zeros_like(A, dtype=float), np.zeros_like(A, dtype=float)
 
     # TODO: fill in L and U
+    for i in range(n):
+        L[i, i] = 1
+
+        for j in range(i, n):
+            U[i, j] = A[i, j] - sum(L[i, k] * U[k, j] for k in range(i))
+
+
+        for j in range(i + 1, n):
+            L[j, i] = ( A[j, i] - sum(L[j, k] * U[k, i] for k in range(i)) ) / U[i, i] 
 
     return L, U
 
@@ -189,6 +200,34 @@ def runtime_comparison():
     # sizes = [2**j for j in range(1, 8)]
     # ...
     # plt.savefig("plot.png")
+
+    sizes = [2**j for j in range(1,8)]
+    lu_times = []
+    ge_times = []
+
+    for n in sizes: 
+        A, b, _ = generate_safe_system(n)
+
+        A_lu = A.copy()
+        start = time.perf_counter()
+        lu_factorisation(A_lu)
+        lu_times.append(time.perf_counter() - start)
+
+        A_ge, b_ge = A.copy(), b.copy()
+        start = time.perf_counter()
+        gaussian_elimination(A_ge, b_ge)
+        ge_times.append(time.perf_counter() - start)
+
+    plt.figure()
+    plt.loglog(sizes, lu_times, "o-", label="LU factorisation")
+    plt.loglog(sizes, ge_times, "s-", label="Gaussian elimination")
+    plt.xlabel("x-axis: Matrix size n")
+    plt.ylabel("y-axis: Time (Seconds)")
+    plt.legend()
+    plt.savefig("plot.png")
+
+
+
 
 
 if __name__ == "__main__":
